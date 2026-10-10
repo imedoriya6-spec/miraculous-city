@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Miraculous City — прототип</title>
+<style>
+:root{--glass:rgba(10,15,30,.82);--line:rgba(255,255,255,.2);--gold:#ffd75e}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#111827;color:#fff;font-family:system-ui,-apple-system,sans-serif;touch-action:none}
+canvas{display:block}
+#menu{position:fixed;inset:0;z-index:5;overflow:auto;background:radial-gradient(ellipse at top,#3b4d88,#111827 65%);padding:22px 16px 35px;text-align:center}
+h1{margin:8px 0 4px;font-size:clamp(26px,7vw,42px);letter-spacing:1px}
+.sub{opacity:.8;margin:0 auto 18px;max-width:600px;font-size:14px}
+#cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;max-width:620px;margin:0 auto 18px}
+.card{border:1px solid var(--line);background:rgba(255,255,255,.08);border-radius:15px;padding:14px 8px;min-height:105px;color:white}
+.card.selected{border:2px solid var(--gold);background:rgba(255,215,94,.15)}
+.avatar{width:46px;height:46px;border-radius:50%;margin:0 auto 7px;display:grid;place-items:center;font-size:23px;border:2px solid #ffffff55}
+.card strong{display:block;font-size:14px}.card small{opacity:.7}
+button{font:600 14px system-ui;border:1px solid #ffffff35;color:white;background:var(--glass);border-radius:12px;padding:12px 14px}
+button:active{transform:scale(.97)}
+#start{background:#ffcc45;color:#171717;border:0;font-size:17px;width:min(100%,620px);padding:15px}
+#notice{max-width:620px;margin:12px auto 0;font-size:12px;opacity:.7;line-height:1.45}
+#hud{display:none;position:fixed;inset:0;z-index:2;pointer-events:none}
+#top{position:absolute;top:env(safe-area-inset-top,8px);left:8px;right:8px;display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+.panel{background:var(--glass);border:1px solid var(--line);border-radius:12px;padding:9px 11px;font-size:12px;max-width:65%}
+#timer{font-weight:800;color:var(--gold);font-size:16px}
+#controls{position:absolute;bottom:calc(12px + env(safe-area-inset-bottom,0px));left:10px;right:10px;display:flex;justify-content:space-between;align-items:flex-end;gap:8px}
+#stick{pointer-events:auto;width:118px;height:118px;border-radius:50%;background:#ffffff1c;border:2px solid #ffffff55;position:relative;flex-shrink:0;touch-action:none}
+#nub{position:absolute;width:46px;height:46px;left:34px;top:34px;border-radius:50%;background:#ffffff9c;border:2px solid white}
+#actions{pointer-events:auto;display:grid;grid-template-columns:repeat(2,minmax(68px,1fr));gap:7px;max-width:250px}
+#actions button{min-height:48px;padding:8px;font-size:12px;backdrop-filter:blur(8px)}
+#hint{position:absolute;top:74px;left:50%;transform:translateX(-50%);text-align:center;white-space:nowrap;background:#101522aa;border-radius:9px;padding:7px 10px;font-size:11px}
+#villains{position:fixed;z-index:4;left:50%;top:50%;transform:translate(-50%,-50%);width:min(92%,360px);background:#141b2df5;border:1px solid var(--line);border-radius:18px;padding:18px;display:none;text-align:center}
+#villains button{display:block;width:100%;margin:8px 0}
+#toast{position:fixed;z-index:6;left:50%;bottom:155px;transform:translateX(-50%);background:#101522ed;border:1px solid #ffffff44;border-radius:12px;padding:10px 13px;display:none;max-width:90%;text-align:center;font-size:13px}
+#back{position:fixed;z-index:3;right:9px;bottom:150px;pointer-events:auto;display:none}
+@media(min-width:650px){#cards{grid-template-columns:repeat(4,minmax(0,1fr))}#controls{left:28px;right:28px}#actions{max-width:310px}#actions button{font-size:14px}}
+</style>
+</head>
+<body>
+<div id="menu">
+  <h1>МИРАКУЛУС: ГОРОД</h1>
+  <p class="sub">Первый 3D-прототип • выбери талисман и исследуй город</p>
+  <div id="cards"></div>
+  <button id="start">Войти в город</button>
+  <p id="notice">Это ранний учебный прототип: модели условные, разрушения упрощены, мультиплеер пока не подключён. Фан-проект, не связанный с правообладателями мультсериала.</p>
+</div>
+<div id="hud">
+  <div id="top">
+    <div class="panel"><b id="who">Леди Баг</b><br><span id="state">В обычной форме</span><br>Очки: <span id="score">0</span></div>
+    <div class="panel">До обратного превращения<br><span id="timer">05:00</span></div>
+  </div>
+  <div id="hint">Двигай джойстик, чтобы идти. Нажми «Сила» для способности.</div>
+  <div id="controls">
+    <div id="stick"><div id="nub"></div></div>
+    <div id="actions">
+      <button id="transform">✨ Превратиться</button>
+      <button id="power">⚡ Сила</button>
+      <button id="extra">🪀 Йойо</button>
+      <button id="restore">🌟 Восстановить</button>
+    </div>
+  </div>
+</div>
+<button id="back">← Выбор героя</button>
+<div id="villains"><h2>Выбери злодея</h2><p>Акуматизируйся и получи способность.</p><button data-villain="Вольпина">🦊 Вольпина — иллюзии</button><button data-villain="Молнимен">⚡ Молнимен — молнии</button><button id="cancelVillains">Отмена</button></div>
+<div id="toast"></div>
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js';
+
+const characters=[
+ {name:'Леди Баг',emoji:'🐞',color:0xd9273e,desc:'Йойо • создание предметов'},
+ {name:'Супер-Кот',emoji:'🐈‍⬛',color:0x20232c,desc:'Разрушение • шест'},
+ {name:'Бражник',emoji:'🦋',color:0x7654b5,desc:'Акуматизация'},
+ {name:'Павлин',emoji:'🦚',color:0x168f9a,desc:'Сенсе-монстры'},
+ {name:'Лиса',emoji:'🦊',color:0xe97932,desc:'Скоро будет'},
+ {name:'Черепаха',emoji:'🐢',color:0x3a9b64,desc:'Скоро будет'},
+ {name:'Пчела',emoji:'🐝',color:0xe5b62d,desc:'Скоро будет'}
+];
+let selected=0, active='Леди Баг', transformed=false, score=0, seconds=300, timerId=null, villainMode=false;
+const menu=document.querySelector('#menu'),hud=document.querySelector('#hud'),cards=document.querySelector('#cards'),actions=document.querySelector('#actions');
+const toastEl=document.querySelector('#toast');
+function toast(s){toastEl.textContent=s;toastEl.style.display='block';clearTimeout(toastEl._t);toastEl._t=setTimeout(()=>toastEl.style.display='none',2300)}
+characters.forEach((c,i)=>{let b=document.createElement('button');b.className='card'+(i===0?' selected':'');b.innerHTML=`<div class="avatar" style="background:#${c.color.toString(16).padStart(6,'0')}">${c.emoji}</div><strong>${c.name}</strong><small>${c.desc}</small>`;b.onclick=()=>{selected=i;document.querySelectorAll('.card').forEach(x=>x.classList.remove('selected'));b.classList.add('selected')};cards.appendChild(b)});
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x8ec5e8);scene.fog=new THREE.Fog(0x8ec5e8,35,115);
+const camera=new THREE.PerspectiveCamera(65,innerWidth/innerHeight,.1,300);
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false});renderer.setPixelRatio(Math.min(devicePixelRatio,1.6));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=false;document.body.appendChild(renderer.domElement);
+scene.add(new THREE.HemisphereLight(0xe8f5ff,0x5a6475,2));
+const sun=new THREE.DirectionalLight(0xffffff,2);sun.position.set(25,45,15);scene.add(sun);
+const mat=(color,roughness=.9)=>new THREE.MeshStandardMaterial({color,roughness});
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(180,180),mat(0x6e9872));ground.rotation.x=-Math.PI/2;ground.position.y=-.12;scene.add(ground);
+const roadMat=mat(0x424953),sideMat=mat(0xb4b5b3),lineMat=mat(0xf3d879);
+const road=new THREE.Mesh(new THREE.PlaneGeometry(17,150),roadMat);road.rotation.x=-Math.PI/2;road.position.set(0,0,-25);scene.add(road);
+for(let z=-95;z<50;z+=8){let dash=new THREE.Mesh(new THREE.BoxGeometry(.18,.025,3.4),lineMat);dash.position.set(0,.02,z);scene.add(dash)}
+for(let x of [-9.2,9.2]){let p=new THREE.Mesh(new THREE.BoxGeometry(1.3,.15,150),sideMat);p.position.set(x,0,-25);scene.add(p)}
+const destructibles=[];
+function building(x,z,w,d,h,color){const g=new THREE.Group();const body=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat(color));body.position.y=h/2;g.add(body);const roof=new THREE.Mesh(new THREE.BoxGeometry(w+.2,.25,d+.2),mat(0x454858));roof.position.y=h+.1;g.add(roof);for(let y=2;y<h-1;y+=2.4)for(let xx=-w/2+1;xx<w/2-.4;xx+=1.5){let win=new THREE.Mesh(new THREE.BoxGeometry(.65,.8,.04),mat(0xa9d9ed));win.position.set(xx,y,d/2+.025);g.add(win)}g.position.set(x,0,z);scene.add(g);destructibles.push(g)}
+for(let z=-85;z<42;z+=11){for(let side of [-1,1]){let h=5+Math.random()*13;building(side*(14+Math.random()*4),z,5+Math.random()*3,7,h,[0xd9c3a1,0xb7c5d5,0xd5a9a9,0xc5c8b8][Math.floor(Math.random()*4)])}}
+for(let i=0;i<15;i++){let tree=new THREE.Group();let trunk=new THREE.Mesh(new THREE.CylinderGeometry(.18,.25,1.5,7),mat(0x725036));trunk.position.y=.75;tree.add(trunk);let crown=new THREE.Mesh(new THREE.IcosahedronGeometry(.9,1),mat(0x438957));crown.position.y=1.9;tree.add(crown);tree.position.set((Math.random()<.5?-1:1)*(10+Math.random()*2),0,-75+i*8);scene.add(tree)}
+const player=new THREE.Group();scene.add(player);
+const bodyMat=mat(0xd9273e),headMat=mat(0xf0c6a5),darkMat=mat(0x20232c);
+const torso=new THREE.Mesh(new THREE.CapsuleGeometry(.42,.8,4,8),bodyMat);torso.position.y=1.25;player.add(torso);
+const head=new THREE.Mesh(new THREE.SphereGeometry(.38,12,10),headMat);head.position.y=2.05;player.add(head);
+const legs=[];for(let x of [-.2,.2]){let leg=new THREE.Mesh(new THREE.CapsuleGeometry(.13,.65,3,6),darkMat);leg.position.set(x,.45,0);player.add(leg);legs.push(leg)}
+const arms=[];for(let x of [-.52,.52]){let arm=new THREE.Mesh(new THREE.CapsuleGeometry(.12,.55,3,6),bodyMat);arm.position.set(x,1.35,0);player.add(arm);arms.push(arm)}
+const accessory=new THREE.Mesh(new THREE.SphereGeometry(.16,8,8),mat(0x111111));accessory.position.set(0,2.34,0);player.add(accessory);
+player.position.set(0,0,7);
+const peers=[]; // network multiplayer will be added in a later version
+let joystick={x:0,y:0}, dragging=false, pointerId=null, destroyed=[], powerObjects=[];
+function repaintHero(){let c=characters.find(x=>x.name===active)||characters[0];bodyMat.color.setHex(transformed?c.color:0x4a627d);torso.material=bodyMat;arms.forEach(a=>a.material=bodyMat);accessory.material.color.setHex(c.color);document.querySelector('#who').textContent=active;document.querySelector('#state').textContent=transformed?'В суперформе':'В обычной форме';document.querySelector('#timer').textContent=`${String(Math.floor(seconds/60)).padStart(2,'0')}:${String(seconds%60).padStart(2,'0')}`;}
+function setButtons(){document.querySelector('#extra').style.display=active==='Леди Баг'||active==='Супер-Кот'?'block':'none';document.querySelector('#restore').style.display=active==='Леди Баг'?'block':'none';}
+function enterGame(){active=characters[selected].name;if(['Лиса','Черепаха','Пчела'].includes(active)){toast('Этот талисман появится в будущей версии');return}menu.style.display='none';hud.style.display='block';document.querySelector('#back').style.display='block';player.position.set(0,0,7);score=0;document.querySelector('#score').textContent=score;repaintHero();setButtons();if(timerId)clearInterval(timerId);seconds=300;timerId=setInterval(()=>{if(transformed&&seconds>0)seconds--;repaintHero();if(transformed&&seconds===0){transformed=false;repaintHero();toast('Время силы закончилось! Ты перевоплотился обратно.')}},1000)}
+document.querySelector('#start').onclick=enterGame;
+document.querySelector('#back').onclick=()=>{menu.style.display='block';hud.style.display='none';document.querySelector('#back').style.display='none';if(timerId)clearInterval(timerId)};
+document.querySelector('#transform').onclick=()=>{if(active==='Бражник'&&!transformed){document.querySelector('#villains').style.display='block';return}transformed=!transformed;if(transformed)seconds=300;repaintHero();toast(transformed?'Превращение! Сила активна.':'Ты вернулся в обычную форму.')};
+document.querySelectorAll('[data-villain]').forEach(b=>b.onclick=()=>{active=b.dataset.villain;villainMode=true;transformed=true;seconds=300;document.querySelector('#villains').style.display='none';repaintHero();setButtons();toast(active+' выбран. Сила готова!')});
+document.querySelector('#cancelVillains').onclick=()=>document.querySelector('#villains').style.display='none';
+function burst(x,z,color=0xffdf60){let m=new THREE.Mesh(new THREE.IcosahedronGeometry(.65,1),new THREE.MeshStandardMaterial({color,emissive:color,emissiveIntensity:.3}));m.position.set(x,1.3,z);scene.add(m);powerObjects.push({mesh:m,life:2});return m}
+function destroyNear(range=7){let nearest=null,dist=Infinity;for(let b of destructibles){if(!b.visible)continue;let d=b.position.distanceTo(player.position);if(d<dist){dist=d;nearest=b}}if(nearest&&dist<range){nearest.visible=false;destroyed.push(nearest);score+=10;document.querySelector('#score').textContent=score;burst(nearest.position.x,2,0xffb347);toast('Объект разрушен! +10 очков')}else toast('Рядом нет разрушаемых объектов. Подойди ближе.')}
+document.querySelector('#power').onclick=()=>{if(!transformed){toast('Сначала нажми «Превратиться»');return}if(active==='Леди Баг'){let item=['щит','пружину','молоток','зонтик'][Math.floor(Math.random()*4)];burst(player.position.x+2,1,0xff4568);toast('Создан случайный предмет: '+item)}else if(active==='Супер-Кот'){destroyNear(9);toast('Кошачья сила! Всё рядом разрушается.')}else if(active==='Бражник'){document.querySelector('#villains').style.display='block'}else if(active==='Вольпина'){let opt=prompt('Иллюзия: введи 1 — стена, 2 — клон, 3 — метеорит');if(opt==='1'){let o=new THREE.Mesh(new THREE.BoxGeometry(4,3,.5),mat(0x9b77ff));o.position.set(player.position.x,1.5,player.position.z-5);scene.add(o);powerObjects.push({mesh:o,life:8});toast('Иллюзия стены создана')}else if(opt==='2'){let clone=new THREE.Mesh(new THREE.CapsuleGeometry(.5,1,4,8),new THREE.MeshStandardMaterial({color:0xb68cff,transparent:true,opacity:.5}));clone.position.set(player.position.x+2,1,player.position.z-3);scene.add(clone);powerObjects.push({mesh:clone,life:8});toast('Иллюзия клона создана')}else if(opt==='3'){burst(player.position.x,2,0xff6c35);destroyNear(9);toast('Метеорит!')}else toast('Иллюзия отменена')}else if(active==='Молнимен'){burst(player.position.x,2,0x62d8ff);destroyNear(11);toast('Молния ударила впереди!')}else if(active==='Павлин'){let choice=prompt('Сенсе-монстр: 1 — слизь, 2 — орёл');if(choice==='1'){let s=new THREE.Mesh(new THREE.IcosahedronGeometry(.8,1),mat(0x55e0b7));s.position.set(player.position.x,1,player.position.z-3);scene.add(s);powerObjects.push({mesh:s,life:15});toast('Слизь создана (прототип)')}else if(choice==='2'){toast('Орёл: полёт будет добавлен в следующей версии')}else toast('Создание отменено')}else toast('Эта сила пока в разработке')};
+document.querySelector('#extra').onclick=()=>{if(!transformed){toast('Сначала превратись');return}if(active==='Леди Баг'){let yoyo=burst(player.position.x,1,0xff2b54);yoyo.position.z=player.position.z-5;destroyNear(8);toast('Йойо брошено вперёд и возвращается!')}else if(active==='Супер-Кот'){destroyNear(8);toast('Удар шестом!')}};
+document.querySelector('#restore').onclick=()=>{if(active!=='Леди Баг'||!transformed){toast('Эта способность доступна Леди Баг в суперформе');return}destroyed.forEach(b=>b.visible=true);destroyed=[];toast('Леди Баг восстановила разрушенные объекты!')};
+const stick=document.querySelector('#stick'),nub=document.querySelector('#nub');
+function stickMove(e){let r=stick.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,dx=e.clientX-cx,dy=e.clientY-cy,len=Math.hypot(dx,dy),max=36;if(len>max){dx=dx/len*max;dy=dy/len*max}joystick.x=dx/max;joystick.y=dy/max;nub.style.transform=`translate(${dx}px,${dy}px)`}
+stick.addEventListener('pointerdown',e=>{dragging=true;pointerId=e.pointerId;stick.setPointerCapture(pointerId);stickMove(e)});
+stick.addEventListener('pointermove',e=>{if(dragging&&e.pointerId===pointerId)stickMove(e)});
+function stopStick(){dragging=false;joystick.x=joystick.y=0;nub.style.transform='translate(0,0)'}
+stick.addEventListener('pointerup',stopStick);stick.addEventListener('pointercancel',stopStick);
+let last=performance.now();
+function animate(now){requestAnimationFrame(animate);let dt=Math.min((now-last)/1000,.05);last=now;
+ if(hud.style.display==='block'){let speed=8;player.position.x+=joystick.x*speed*dt;player.position.z+=joystick.y*speed*dt;player.position.x=THREE.MathUtils.clamp(player.position.x,-7,7);player.position.z=THREE.MathUtils.clamp(player.position.z,-90,35);if(Math.abs(joystick.x)+Math.abs(joystick.y)>.1){player.rotation.y=Math.atan2(joystick.x,joystick.y);legs[0].rotation.x=Math.sin(now*.012)*.65;legs[1].rotation.x=-Math.sin(now*.012)*.65;arms[0].rotation.x=-Math.sin(now*.012)*.35;arms[1].rotation.x=Math.sin(now*.012)*.35}}
+ camera.position.lerp(new THREE.Vector3(player.position.x,player.position.y+5.2,player.position.z+9.5),.08);camera.lookAt(player.position.x,1.3,player.position.z-3);
+ for(let i=powerObjects.length-1;i>=0;i--){let o=powerObjects[i];o.life-=dt;o.mesh.rotation.y+=dt*2;if(o.life<=0){scene.remove(o.mesh);powerObjects.splice(i,1)}}
+ renderer.render(scene,camera)}
+requestAnimationFrame(animate);
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+</script>
+</body>
+</html>
